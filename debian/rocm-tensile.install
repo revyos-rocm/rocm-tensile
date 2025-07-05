@@ -1,0 +1,2 @@
+opt/rocm-@ROCM_VERSION@/lib/lib*
+opt/rocm-@ROCM_VERSION@/share
