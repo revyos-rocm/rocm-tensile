@@ -48,7 +48,7 @@ Architecture: any
 Depends:
  ${shlibs:Depends},
  ${misc:Depends},
-libboost-filesystem-dev,
+ libboost-filesystem-dev,
  libboost-program-options-dev,
  libomp-dev,
  libtinfo-dev,
