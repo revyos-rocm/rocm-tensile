@@ -6,7 +6,7 @@ CFLAGS_BUILDING := -O2
 export DEB_CFLAGS_MAINT_APPEND = $(CFLAGS_BUILDING)
 export DEB_CXXFLAGS_MAINT_APPEND = $(CFLAGS_BUILDING)
 
-PKG_NAME=rocm-rocblas
+PKG_NAME=rocm-tensile
 
 export PYBUILD_NAME = $(PKG_NAME)
 
@@ -33,7 +33,7 @@ override_dh_auto_configure:
 	sed -i -e "s@opt/rocm@opt/rocm-${ROCM_VERSION}@g" Tensile/Tests/yaml_only/test_config.py
 	dh_auto_configure
 
-override_dh_install:
-	sed -i "s,@ROCM_VERSION@,${ROCM_VERSION},g" debian/*.install
-	dh_install
+#override_dh_install:
+#	sed -i "s,@ROCM_VERSION@,${ROCM_VERSION},g" debian/*.install
+#	dh_install
 
