@@ -30,7 +30,7 @@ override_dh_auto_configure:
 # Fix ROCM_PATH at first
 	sed -i -e "s@opt/rocm@opt/rocm-${ROCM_VERSION}@g" Tensile/Common.py
 	sed -i -e "s@opt/rocm@opt/rocm-${ROCM_VERSION}@g" Tensile/Tests/yaml_only/test_config.py
-	sed -i -e "s@opt/rocm@opt/rocm-${ROCM_VERSION}@g" Tensile/Tensile/Tests/extended/convolution_config/YamlBuilder/YamlBuilder.py
+	sed -i -e "s@opt/rocm@opt/rocm-${ROCM_VERSION}@g" Tensile/Tests/extended/convolution_config/YamlBuilder/YamlBuilder.py
 	dh_auto_configure
 
 override_dh_install:
