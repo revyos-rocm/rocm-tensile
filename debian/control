@@ -23,27 +23,7 @@ Homepage: https://github.com/ROCm/Tensile
 Vcs-Browser: https://github.com/r-rocm/rocm-tensile
 Vcs-Git: https://github.com/r-rocm/rocm-tensile.git
 
-Package: rocm-tensile
-Architecture: any
-Depends:
- ${shlibs:Depends},
- ${misc:Depends},
- libboost-filesystem1.83.0,
- libboost-program-options1.83.0,
- libtinfo6,
- python3,
- python3-yaml,
- rocm-cmake,
- rocm-core,
- rocm-env,
-Description: A tool for creating benchmark-driven backend librarie - binary
- Tensile is a tool for creating benchmark-driven backend libraries for GEMMs,
- GEMM-like problems (such as batched GEMM), and general N-dimensional tensor
- contractions on a GPU. The Tensile library is mainly used as backend library to
- rocBLAS. Tensile acts as the performance backbone for a wide variety of
- 'compute' applications running on AMD GPUs.
-
-Package: rocm-tensile-dev
+Package: python3-rocm-tensile
 Architecture: any
 Depends:
  ${shlibs:Depends},
@@ -55,8 +35,7 @@ Depends:
  pkg-config,
  python3,
  python3-yaml,
- rocm-tensile,
-Description: A tool for creating benchmark-driven backend libraries  - dev
+Description: A tool for creating benchmark-driven backend libraries  - python3
  Tensile is a tool for creating benchmark-driven backend libraries for GEMMs,
  GEMM-like problems (such as batched GEMM), and general N-dimensional tensor
  contractions on a GPU. The Tensile library is mainly used as backend library to

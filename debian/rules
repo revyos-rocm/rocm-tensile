@@ -8,7 +8,7 @@ export DEB_CXXFLAGS_MAINT_APPEND = $(CFLAGS_BUILDING)
 
 PKG_NAME=rocm-tensile
 
-export PYBUILD_NAME = $(PKG_NAME)
+export PYBUILD_NAME = python3-$(PKG_NAME)
 
 # ROCM_VERSION=$(DEB_VERSION_UPSTREAM) // cannot be used in debuild
 ROCM_VERSION=$(shell cat /opt/REVYOS_ROCM_VERSION)
@@ -19,7 +19,7 @@ MAKEOPTS="-j$$(($$(nproc) / 4))"
 TOP_DIR := $(CURDIR)
 DEB_SRC_PATH := $(TOP_DIR)
 DEB_BUILD_PATH := $(TOP_DIR)/build-rocm
-DEB_INST_DIR := $(TOP_DIR)/debian/tmp
+DEB_INST_DIR := $(TOP_DIR)/debian/$(PYBUILD_NAME)
 
 # GPU_TARGETS="gfx908:xnack-;gfx90a:xnack-;gfx90a:xnack+;gfx940;gfx941;gfx942;gfx1030;gfx1100"
 
@@ -33,7 +33,7 @@ override_dh_auto_configure:
 	sed -i -e "s@opt/rocm@opt/rocm-${ROCM_VERSION}@g" Tensile/Tests/yaml_only/test_config.py
 	dh_auto_configure
 
-#override_dh_install:
-#	sed -i "s,@ROCM_VERSION@,${ROCM_VERSION},g" debian/*.install
-#	dh_install
+override_dh_install:
+	sed -i "s,@ROCM_VERSION@,${ROCM_VERSION},g" debian/*.install
+	dh_install
 
