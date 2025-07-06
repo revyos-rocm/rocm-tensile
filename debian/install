@@ -1,3 +1,4 @@
 usr/bin opt/rocm-@ROCM_VERSION@/
 usr/cmake opt/rocm-@ROCM_VERSION@/
 usr/lib opt/rocm-@ROCM_VERSION@/
+usr/share opt/rocm-@ROCM_VERSION@/
