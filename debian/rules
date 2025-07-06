@@ -9,7 +9,6 @@ export DEB_CXXFLAGS_MAINT_APPEND = $(CFLAGS_BUILDING)
 PKG_NAME=rocm-tensile
 
 export PYBUILD_NAME = python3-$(PKG_NAME)
-export PYBUILD_DESTDIR_python3 = debian/tmp
 
 # ROCM_VERSION=$(DEB_VERSION_UPSTREAM) // cannot be used in debuild
 ROCM_VERSION=$(shell cat /opt/REVYOS_ROCM_VERSION)
@@ -31,10 +30,11 @@ override_dh_auto_configure:
 # Fix ROCM_PATH at first
 	sed -i -e "s@opt/rocm@opt/rocm-${ROCM_VERSION}@g" Tensile/Common.py
 	sed -i -e "s@opt/rocm@opt/rocm-${ROCM_VERSION}@g" Tensile/Tests/yaml_only/test_config.py
-	sed -i -e "s@opt/rocm@opt/rocm-${ROCM_VERSION}@g" Tensile/Tests/extended/convolution_config/YamlBuilder/YamlBuilder.py
+	sed -i -e "s@opt/rocm@opt/rocm-${ROCM_VERSION}@g" Tensile/Tensile/Tests/extended/convolution_config/YamlBuilder/YamlBuilder.py
 	dh_auto_configure
 
 override_dh_install:
 	sed -i "s,@ROCM_VERSION@,${ROCM_VERSION},g" debian/install
-	dh_install
+	dh_install --sourcedir=$(DEB_INST_DIR)
+	rm -rf $(DEB_INST_DIR)/usr
 
