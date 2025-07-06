@@ -34,6 +34,6 @@ override_dh_auto_configure:
 	dh_auto_configure
 
 override_dh_install:
-	sed -i "s,@ROCM_VERSION@,${ROCM_VERSION},g" debian/*.install
+	sed -i "s,@ROCM_VERSION@,${ROCM_VERSION},g" debian/install
 	dh_install
 
