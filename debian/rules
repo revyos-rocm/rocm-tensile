@@ -16,11 +16,6 @@ ROCM_PATH=/opt/rocm-$(ROCM_VERSION)
 
 MAKEOPTS="-j$$(($$(nproc) / 4))"
 
-TOP_DIR := $(CURDIR)
-DEB_SRC_PATH := $(TOP_DIR)
-DEB_BUILD_PATH := $(TOP_DIR)/build-rocm
-DEB_INST_DIR := $(TOP_DIR)/debian/$(PYBUILD_NAME)
-
 # GPU_TARGETS="gfx908:xnack-;gfx90a:xnack-;gfx90a:xnack+;gfx940;gfx941;gfx942;gfx1030;gfx1100"
 
 %:
@@ -33,8 +28,8 @@ override_dh_auto_configure:
 	sed -i -e "s@opt/rocm@opt/rocm-${ROCM_VERSION}@g" Tensile/Tests/extended/convolution_config/YamlBuilder/YamlBuilder.py
 	dh_auto_configure
 
-override_dh_install:
-	sed -i "s,@ROCM_VERSION@,${ROCM_VERSION},g" debian/install
-	dh_install --sourcedir=$(DEB_INST_DIR)
-	rm -rf $(DEB_INST_DIR)/usr
+#override_dh_install:
+#	sed -i "s,@ROCM_VERSION@,${ROCM_VERSION},g" debian/install
+#	dh_install --sourcedir=$(DEB_INST_DIR)
+#	rm -rf $(DEB_INST_DIR)/usr
 

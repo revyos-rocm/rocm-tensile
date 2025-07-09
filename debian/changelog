@@ -1,3 +1,9 @@
+rocm-tensile (6.2.4-2) unstable; urgency=medium
+
+  * Build for standard python path.
+
+ -- CHEN Xuan <chenxuan@iscas.ac.cn>  Wed, 09 Jul 2025 18:42:26 +0800
+
 rocm-tensile (6.2.4-1) unstable; urgency=medium
 
   * Initial release.
