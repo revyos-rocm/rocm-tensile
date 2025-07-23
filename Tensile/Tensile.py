@@ -1,6 +1,6 @@
 ################################################################################
 #
-# Copyright (C) 2016-2023 Advanced Micro Devices, Inc. All rights reserved.
+# Copyright (C) 2016-2024 Advanced Micro Devices, Inc. All rights reserved.
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -29,7 +29,9 @@ if __name__ == "__main__":
 import os
 import sys
 import argparse
-from .Common import globalParameters, print1, printExit, ensurePath, \
+import shutil
+
+from .Common import globalParameters, tPrint, printExit, ensurePath, \
     assignGlobalParameters, restoreDefaultGlobalParameters, HR, gfxArch
 from . import BenchmarkProblems
 from . import ClientExecutable
@@ -38,7 +40,7 @@ from . import LibraryIO
 from . import LibraryLogic
 from . import __version__
 from datetime import datetime
-
+from .Utilities.Profile import profile
 
 ###############################################################################
 # Execute Steps in Config
@@ -55,7 +57,7 @@ def executeStepsInConfig(config):
     ##############################################################################
     if "BenchmarkProblems" in config:
         BenchmarkProblems.main(config["BenchmarkProblems"], config["UseCache"])
-        print1("")
+        tPrint(1, "")
 
     ##############################################################################
     # Library Logic
@@ -73,10 +75,10 @@ def executeStepsInConfig(config):
             else:
                 libraryLogicConfig = {}
             LibraryLogic.main(libraryLogicConfig)
-            print1("")
+            tPrint(1, "")
         else:
-            print1("# LibraryLogic already done.")
-        print1("")
+            tPrint(1, "# LibraryLogic already done.")
+        tPrint(1, "")
 
     ##############################################################################
     # Write Client
@@ -87,7 +89,7 @@ def executeStepsInConfig(config):
         else:
             libraryClientConfig = {}
         ClientWriter.main(libraryClientConfig)
-        print1("")
+        tPrint(1, "")
 
 
 def addCommonArguments(argParser):
@@ -110,26 +112,27 @@ def addCommonArguments(argParser):
     argParser.add_argument("-p", "--platform", dest="platform", type=int, \
         help="override which OpenCL platform to benchmark")
     argParser.add_argument("--runtime-language", dest="RuntimeLanguage", \
-        choices=["HIP", "OCL"], help="override which runtime language to use")
+        choices=["HIP"], help="override which runtime language to use")
     argParser.add_argument("--code-object-version", dest="CodeObjectVersion", \
         choices=["default", "V4", "V5"], help="HSA code-object version")
     argParser.add_argument("--arch", dest="arch", help="override gfx arch version")
     argParser.add_argument("-v", "--verbose", action="store_true", \
-        help="set PrintLevel=2")
+        help="set PrintLevel=3")
     argParser.add_argument("--debug", dest="debug", action="store_true", \
-        help="set PrintLevel=2 and CMakeBuildType=Debug")
+        help="set PrintLevel=3 and CMakeBuildType=Debug")
     argParser.add_argument("--short-names", dest="shortNames", action="store_true", \
         help="use serial kernel and solution names")
     argParser.add_argument("--no-merge-files", dest="noMergeFiles", action="store_true", \
         help="kernels and solutions written to individual files")
-    argParser.add_argument("--cxx-compiler", dest="CxxCompiler", choices=["hipcc"], \
-        action="store", default="hipcc", help="select which compiler to use")
+    argParser.add_argument("--cxx-compiler", dest="CxxCompiler", choices=["hipcc", 'amdclang++'], \
+        action="store", default="amdclang++", help="select which compiler to use")
     argParser.add_argument("--library-format", dest="LibraryFormat", choices=["yaml", "msgpack"], \
         action="store", help="select which library format to use")
     argParser.add_argument("--client-build-path", default=None)
     argParser.add_argument("--client-lock", default=None)
     argParser.add_argument("--prebuilt-client", default=None)
-
+    argParser.add_argument("--asm-cache", dest="AsmCacheFile", action="store", type=str, \
+        help="Path to ASM cache YAML file. If it does not exist, generate the cache. If it does exist, use the cache file")
     argParser.add_argument("--global-parameters", nargs="+", type=splitExtraParameters, default=[])
 
 
@@ -140,26 +143,26 @@ def argUpdatedGlobalParameters(args):
     rv = {}
     # override config with command-line options
     if args.device:
-        print1("# Command-line override: Device")
+        tPrint(1, "# Command-line override: Device")
         rv["Device"] = args.device
     if args.platform:
-        print1("# Command-line override: Platform")
+        tPrint(1, "# Command-line override: Platform")
         rv["Platform"] = args.platform
     if args.RuntimeLanguage:
-        print1("# Command-line override: RuntimeLanguage")
+        tPrint(1, "# Command-line override: RuntimeLanguage")
         rv["RuntimeLanguage"] = args.RuntimeLanguage
     if args.CodeObjectVersion:
-        print1("# Command-line override: CodeObjectVersion")
+        tPrint(1, "# Command-line override: CodeObjectVersion")
         rv["CodeObjectVersion"] = args.CodeObjectVersion
     if args.arch:
-        print1("# Command-line override: CurrentISA")
+        tPrint(1, "# Command-line override: CurrentISA")
         rv["CurrentISA"] = gfxArch(args.arch)
     if args.verbose:
-        print1("# Command-line override: PrintLevel")
-        rv["PrintLevel"] = 2
+        tPrint(1, "# Command-line override: PrintLevel")
+        rv["PrintLevel"] = 3
     if args.debug:
-        print1("# Command-line override: Debug")
-        rv["PrintLevel"] = 2
+        tPrint(1, "# Command-line override: Debug")
+        rv["PrintLevel"] = 3
         rv["CMakeBuildType"] = "Debug"
     if args.shortNames:
         rv["ShortNames"] = True
@@ -167,7 +170,7 @@ def argUpdatedGlobalParameters(args):
         rv["MergeFiles"] = False
     if args.CxxCompiler:
         rv['CxxCompiler'] = args.CxxCompiler
-    print1("")
+    tPrint(1, "")
     if args.client_build_path:
         rv["ClientBuildPath"] = args.client_build_path
     if args.client_lock:
@@ -185,14 +188,15 @@ def argUpdatedGlobalParameters(args):
 # Tensile
 # - below entry points call here
 ################################################################################
+@profile
 def Tensile(userArgs):
     global globalParameters
 
     # 1st half of splash
-    print1("")
-    print1(HR)
-    print1("#")
-    print1("#  Tensile v%s" % (__version__))
+    tPrint(1, "")
+    tPrint(1, HR)
+    tPrint(1, "#")
+    tPrint(1, "#  Tensile v%s" % (__version__))
 
     # setup argument parser
     # yapf: disable
@@ -214,7 +218,6 @@ def Tensile(userArgs):
 
     addCommonArguments(argParser)
     args = argParser.parse_args(userArgs)
-
     configPaths = args.config_file
     altFormat = args.AlternateFormat
     useCache = not args.NoCache
@@ -229,15 +232,15 @@ def Tensile(userArgs):
 
     # 2nd half of splash
     if len(configPaths) == 1:
-        print1("#  Config: {}".format(configPaths[0]))
+        tPrint(1, "#  Config: {}".format(configPaths[0]))
     else:
-        print1("#  Configs: {} and {}".format(configPaths[0], configPaths[1]))
-    print1("#  Date & Time: %s" % (datetime.now().strftime("%d/%m/%Y %H:%M:%S")))
-    print1("#")
-    print1(HR)
-    print1("")
+        tPrint(1, "#  Configs: {} and {}".format(configPaths[0], configPaths[1]))
+    tPrint(1, "#  Date & Time: %s" % (datetime.now().strftime("%d/%m/%Y %H:%M:%S")))
+    tPrint(1, "#")
+    tPrint(1, HR)
+    tPrint(1, "")
 
-    print1("# Restoring default globalParameters")
+    tPrint(1, "# Restoring default globalParameters")
     restoreDefaultGlobalParameters()
 
     # CxxCompiler and LibraryFormat needs to be updated before assignGlobalParameters.
@@ -275,11 +278,16 @@ def Tensile(userArgs):
     config["UseCache"] = useCache
     globalParameters["ConfigPath"] = configPaths
 
+    capabilitiesCache = LibraryIO.initAsmCapsCache(args.AsmCacheFile)
+
     # assign global parameters
     if "GlobalParameters" in config:
-        assignGlobalParameters(config["GlobalParameters"])
+        assignGlobalParameters(config["GlobalParameters"], capabilitiesCache)
     else:
-        assignGlobalParameters({})
+        assignGlobalParameters({}, capabilitiesCache)
+
+    if globalParameters["CacheAsmCaps"]:
+        LibraryIO.writeAsmCapsCache(args.AsmCacheFile, globalParameters["AsmCaps"])
 
     globalParameters["OutputPath"] = ensurePath(os.path.abspath(args.output_path))
     globalParameters["WorkingPath"] = globalParameters["OutputPath"]
@@ -296,6 +304,12 @@ def Tensile(userArgs):
     ClientExecutable.getClientExecutable(clientPath)
     executeStepsInConfig(config)
 
+    if not globalParameters["KeepBuildTmp"]:
+        for root, subdirs, files in os.walk(globalParameters["OutputPath"]):
+            for d in subdirs:
+                if d == "build_tmp":
+                    shutil.rmtree(os.path.join(root, d))
+                    break
 
 def TensileConfigPath(*args):
     return os.path.join(os.path.dirname(os.path.realpath(__file__)), "Configs", *args)
