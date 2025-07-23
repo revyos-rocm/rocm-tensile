@@ -24,7 +24,7 @@
 
 from . import Code
 from . import Common
-from .Common import globalParameters, CHeader, roundUp, Backup, print2
+from .Common import globalParameters, CHeader, roundUp, Backup, tPrint
 from .ReplacementKernels import ReplacementKernels
 from .CustomKernels import isCustomKernelConfig
 from .SolutionStructs import Solution
@@ -46,10 +46,11 @@ class KernelWriter(metaclass=abc.ABCMeta):
   ##############################################################################
   # Init
   ##############################################################################
-  def __init__( self, kernelMinNaming, kernelSerialNaming ):
+  def __init__( self, kernelMinNaming, kernelSerialNaming, removeTemporaries=True ):
     self.kernelMinNaming = kernelMinNaming
     self.kernelSerialNaming = kernelSerialNaming
     self.overflowedResources = 0
+    self.removeTemporaries = removeTemporaries
 
   @property
   def asmCaps(self):
@@ -400,7 +401,7 @@ class KernelWriter(metaclass=abc.ABCMeta):
           valueFromParam = roundUp(kernel["LocalWritePerMfma"]*PRECISION)
           # parameter check (to avoid mismatch due to overwrapping)
           if (valueFromParam < self.numLocalWriteModPerMfma):
-            print2("LocalWritePerMfma (%f) is too small. Auto-adjusted." % kernel["LocalWritePerMfma"])
+            tPrint(3, "LocalWritePerMfma (%f) is too small. Auto-adjusted." % kernel["LocalWritePerMfma"])
             valueFromParam = self.numLocalWriteModPerMfma
           self.numLocalWriteModPerMfma = valueFromParam
         elif (kernel["DirectToVgprA"] or kernel["DirectToVgprB"]):
@@ -2573,9 +2574,6 @@ class KernelWriter(metaclass=abc.ABCMeta):
               kl.append(self.comment1("local read increment b"))
               kl.append(self.localReadInc(kernel, iui, tensorParametersB))
 
-    kl.append(self.closeString(kernel))
-    kl.append(self.openString(kernel))
-
     pflr     = self.numItersPLR  # how many pf already done above
     # vregSetIdx for DTV
     vregSetIdxMFMA = lc
@@ -2970,8 +2968,6 @@ class KernelWriter(metaclass=abc.ABCMeta):
               subIterCode.addCode(waitCode)
               subIterCode.addCode(macIterCodeGrp)
             kl.append(subIterCode) # add scheduled "other", local reads, local writes
-    kl.append(self.closeString(kernel))
-    kl.append(self.openString(kernel))
 
     # close unrolled loop
     if expand:
@@ -3002,7 +2998,6 @@ class KernelWriter(metaclass=abc.ABCMeta):
     ####################################
     # Begin String
     kl = []
-    kl.append(self.openString(kernel))
 
     ####################################
     # Function Prefix
@@ -3602,7 +3597,6 @@ class KernelWriter(metaclass=abc.ABCMeta):
     kl.append(self.functionEnd(kernel, True))
     kl.append(self.functionSuffix(kernel))
 
-    kl.append(self.closeString(kernel))
     kStr = '\n'.join([str(x) for x in kl])
     # init code opt
     if placeholderInitCodeOpt != None:
@@ -4293,7 +4287,7 @@ class KernelWriter(metaclass=abc.ABCMeta):
       if not self.noTailLoop:
         minDUnum += 1
       if not (asgt3 >= kernel["DepthU"] * gsu * minDUnum):
-        print2("InitAccVgprOpt is disabled because AssertSizeGreaterThan for K is not greater than DepthU * GSU * %u"%minDUnum)
+        tPrint(3, "InitAccVgprOpt is disabled because AssertSizeGreaterThan for K is not greater than DepthU * GSU * %u"%minDUnum)
         self.useInitAccVgprOpt = False
 
     # condition(s) to enable singleNLL opt
@@ -4333,20 +4327,6 @@ class KernelWriter(metaclass=abc.ABCMeta):
      """ Returns zero-pad for specified sumIdx if it matches or None if not """
      return next((zpi for zpi in zeroPad if zpi[1] == sumIdx), None)
 
-
-  ##############################################################################
-  # Open String
-  ##############################################################################
-  @abc.abstractmethod
-  def openString(self, kernel):
-    return ""
-
-  ##############################################################################
-  # Close String
-  ##############################################################################
-  @abc.abstractmethod
-  def closeString(self, kernel):
-    return ""
 
   ##############################################################################
   # Function Prefix
@@ -5422,7 +5402,7 @@ for codeObjectFileName in codeObjectFileNames:
     else:
       kernelSource = self.getKernelSource(kernel)
 
-      if globalParameters["PrintLevel"] >= 2:
+      if globalParameters["PrintLevel"] >= 3:
         print("write_assemblyFilename %s" % assemblyFileName)
 
       with open(assemblyFileName, 'w') as assemblyFile:
@@ -5437,16 +5417,17 @@ for codeObjectFileName in codeObjectFileNames:
     objectFileName = base + '.o'
 
     args = self.getCompileArgs(assemblyFileName, objectFileName)
-    if globalParameters["PrintCodeCommands"]:
-      print (' '.join(args), " && ")
+    tPrint(2, "Assemble command: " + " ".join(args) + " && ")
 
     # change to use  check_output to force windows cmd block util command finish
     try:
       out = subprocess.check_output(args, stderr=subprocess.STDOUT, cwd=self.getAssemblyDirectory())
-      print2(out)
+      tPrint(3, out)
     except subprocess.CalledProcessError as err:
       print(err.output)
       raise
+    if self.removeTemporaries:
+        os.remove(assemblyFileName)
 
     return objectFileName
 
@@ -5457,13 +5438,13 @@ for codeObjectFileName in codeObjectFileNames:
     coFileName = base + '.co'
 
     args = self.getLinkCodeObjectArgs([objectFileName], coFileName)
-    if globalParameters["PrintCodeCommands"]:
-      print (' '.join(args))
+    
+    tPrint(2, 'Single Code Object File: ' + ' '.join(args))
 
     # change to use  check_output to force windows cmd block util command finish
     try:
       out = subprocess.check_output(args, stderr=subprocess.STDOUT, cwd=self.getAssemblyDirectory())
-      print2(out)
+      tPrint(3, out)
     except subprocess.CalledProcessError as err:
       print(err.output)
       raise
@@ -5551,22 +5532,16 @@ for codeObjectFileName in codeObjectFileNames:
   def getHeaderFileString(self, kernel):
     kernelName = self.getKernelName(kernel)
     fileString = "" # CHeader
-    if self.language == "HIP" or self.language == "OCL":
+    if self.language == "HIP":
       if not globalParameters["MergeFiles"]:
         fileString += CHeader
         fileString += "#pragma once\n\n"
-        if self.language == "HIP":
-          fileString += "#include <hip/hip_runtime.h>\n"
-          fileString += "#include <hip/hip_fp16.h>\n"
-          fileString += "#include <KernelHeader.h>\n"
-          fileString += "\n"
-        else:
-          fileString += "#include <string>\n"
-      if self.language == "OCL":
-        fileString += "extern const char * const %s_src;\n" % kernelName
-      else:
-        fileString += self.functionSignature(kernel)
-        fileString += ";\n"
+        fileString += "#include <hip/hip_runtime.h>\n"
+        fileString += "#include <hip/hip_fp16.h>\n"
+        fileString += "#include <KernelHeader.h>\n"
+        fileString += "\n"
+      fileString += self.functionSignature(kernel)
+      fileString += ";\n"
     else:
       if not globalParameters["MergeFiles"] or globalParameters["NumMergedFiles"] > 1:
         fileString += "#pragma once\n\n"

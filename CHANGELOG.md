@@ -1,6 +1,132 @@
-# Change Log for Tensile
+# Changelog for Tensile
 
-## Tensile 4.41.0 to ROCm 6.2
+## Tensile 4.43.0 for ROCm 6.4
+
+### Added
+
+- Nightly builds with performance statistics
+- Cache asm capabilities for reuse
+- venv for Tensile create on Linux
+- Flag to keep build_tmp when running Tensile
+- Generalized profiling scripts
+- GFX1151 support
+- Single-threaded support in TensileCreateLibrary
+- Logic to remove temporary build artifacts
+
+### Changed
+
+- Updated Tensile documents (API reference, README.md, and comments)
+- Disabled asm-cache for tests
+- Used hipcc.bat as a compiler on Windows instead of the Perl script
+- Improved clarity of CHANGELOG.md
+- Enabled external CI
+- Improved Tensile documentation
+- Refactored kernel source and header creation
+- Refactored writeKernels in TensileCreateLibrary
+- Suppressed developer warnings (simplifying the Tensile output)
+- Used an explicit cast when invoking min is called
+- Used cache abbreviations to compute kernel names
+
+### Removed
+
+- OCL backend
+- Unsupported tests
+- Deep copy in TensileCreateLibrary
+
+### Optimized
+
+- Linearized asm register search to reduce build time
+
+### Resolved issues
+
+- Fixed Stream-K dynamic grid model
+- Fixed logic related to caching asm capabilities
+- Fixed accvgpr overflow
+- Fixed test failures in SLES containers when running TensileTests
+- Fixed a regression that prevents TensileCreateLibrary from completing when fallback logic is not available
+
+## Tensile 4.42.0 for ROCm 6.4.0
+
+### Added
+
+- Contributor and developer guide
+- Testing and documentation for `MasterSolutionLibrary.ArchitectureIndexMap` and `remapSolutionIndicesStartingFrom`
+- gfx12 support
+- Functions for writing master file
+- `tPrint` and reconcile printing options
+- Python unit test coverage report
+- Factor embed library logic into function and test
+- `clang++` as cxx-compiler option for Windows
+- Logic to cope with different compilers
+- `toFile` function to include `generateManifest` and moved to utilities
+- Profiling CI job
+- Support for `amdclang` and use defaults
+- Architecture management functions in `TensileCreateLibrary`
+- `TensileCreateLibrary` CLI reference docs
+- New documentation for sphinx prototype and build out skeleton
+- Prediction model for optimal number of Stream-K tiles to run
+- Two-tile algorithm with Stream-K after DP
+- Atomic two-tile Stream-K and clean-up tuning parameters
+- Using glob to find logic files in `TensileCreateLibrary`
+- Function to confirm supported compiler rather than raw logic
+
+### Changed
+
+- Improved rocBLAS build output by allowing warning suppression, ignoring developer warnings, displaying progress bar and quiet printing
+- Reordered extensions for Windows in `which` function
+- Updated `amdclang++` and `asm` directories
+- Updated duplicate marking tests with mocks
+- Restored print ordering
+- Print option
+- Bumped rocm-docs-core from 1.2.0 to 1.5.0 in `/docs/sphinx`
+- Refactored kernel duplicate matching
+- Refactored `generateLogicDataAndSolutions`
+- Restricted XCC mapping to gfx942
+- Refactored argument parsing in `TensileCreateLibrary`
+- Disabled failing rhel9 tests
+- Changed line length to 100 characters for formatting
+- Changed YAML operations to use C `libyaml` backend
+- Improved warning text
+- Updated clang support for Windows
+- Updated `supportedCompiler` function
+- Clang support on Windows to require use of conditional choices and defaults
+- Refactored sanity check in `TensileCreateLibrary`
+- Moved client config logic from `TensileCreateLibrary` main into `createClientConfig`
+- Updated `verifyManifest` in `TensileCreateLibrary`
+- Updated RTD configs
+- Cleaned up CMake to avoid redundant work during client builds
+- Updated Stream-K debug settings
+
+### Removed
+
+- Deprecated flag from CI profiling job
+- Diagnostic print
+- Globals from `prepAsm`
+- Deprecated `package-library` option
+- Duplicate `which` function and minor cleanup
+
+### Optimized
+
+To optimize the performance of Stream-K kernels:
+
+- Introduced analytical grid size prediction model
+- Remapped XCC-based workgroup
+
+### Resolved issues
+
+- Fixed stream-K XCC configs for gfx942
+- Updated WMMA capability command for ISA 10+
+- Fixed progress bar character encoding error on Windows
+- Fixed solution redundancy removal
+- Fixed tuning imports for `pyyaml`
+- Fixed printing of ASM capabilities for ROCm versions prior to 6.3
+- Fixed code objects by filtering kernels with build errors and unprocessed kernels
+- Fixed fully qualified `std::get` in contraction solutions
+- Fixed `add -v flag` and change system invocation
+- Used conditional imports for new dependencies to fix yaml `CSafe` load and dump import and rich terminal print import
+- Fixed comments on `scalarStaticDivideAndRemainder`
+
+## Tensile 4.41.0 for ROCm 6.2.0
 ### Additions
 - new tuning script to summarize rocBLAS log file
 - new environment variable to test fixed grid size with Stream-K kernels

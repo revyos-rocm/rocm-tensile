@@ -25,10 +25,10 @@
 from .Common import assignParameterRequired, assignParameterWithDefault, \
                     defaultProblemType, defaultSolution, \
                     globalParameters, \
-                    print2, printExit, printWarning, \
+                    tPrint, printExit, printWarning, \
                     validActivationFormats, validConvolutionConfig, \
                     validMFMA, validWMMA, validParameters, validWeightFormats, \
-                    validGEMMTypes, HPATypes
+                    validGEMMTypes, HPATypes, parameterNameAbbreviations
 from .DataType import DataType
 from .Utils import roundUpToNearestMultiple
 
@@ -1062,8 +1062,8 @@ class ProblemType(Mapping):
       if state["IndexAssignmentsB"][i] == state["IndexUnroll"]:
         state["IndexUnrollB"] = i
         break
-    #print2("IndexUnrollA: %u" % state["IndexUnrollA"])
-    #print2("IndexUnrollB: %u" % state["IndexUnrollB"])
+    #tPrint(3, "IndexUnrollA: %u" % state["IndexUnrollA"])
+    #tPrint(3, "IndexUnrollB: %u" % state["IndexUnrollB"])
 
     # assign d0, d1
     if state["AllowNoFreeDims"]:
@@ -1072,8 +1072,8 @@ class ProblemType(Mapping):
       dimList = state["IndicesFree"]
     state["Index01A"] = [i for i in state["IndexAssignmentsA"] if i in dimList][0]
     state["Index01B"] = [i for i in state["IndexAssignmentsB"] if i in dimList][0]
-    #print2("Index01A: %u" % state["Index01A"])
-    #print2("Index01B: %u" % state["Index01B"])
+    #tPrint(3, "Index01A: %u" % state["Index01A"])
+    #tPrint(3, "Index01B: %u" % state["Index01B"])
     # Store code is optimized for 0 as the fastest-moving in memory
     # whichever has lower stride in C (lower value), is 0, other is 1
     if state["Index01A"] < state["Index01B"]:
@@ -1720,51 +1720,51 @@ class Solution(collections.abc.Mapping):
   ########################################
   def __init__(self, config):
     self._name = None
-    config = deepcopy(config)
 
-    self._state = {}
+    state = {}
     # problem type
     if "ProblemType" in config:
-      self["ProblemType"] = ProblemType(config["ProblemType"])
+      state["ProblemType"] = ProblemType(config["ProblemType"])
     else:
-      self["ProblemType"] = ProblemType(defaultProblemType)
+      state["ProblemType"] = ProblemType(defaultProblemType)
 
     # assign parameters with defaults
     for key in defaultSolution:
-      assignParameterWithDefault(self._state, key, config, defaultSolution)
+      assignParameterWithDefault(state, key, config, defaultSolution)
 
-    if 'ISA' not in self._state:
+    if 'ISA' not in state:
       if 'ISA' in config:
-        self._state['ISA'] = config['ISA']
+        state['ISA'] = config['ISA']
       elif config['KernelLanguage'] == 'Assembly':
-        self._state['ISA'] = list(globalParameters["CurrentISA"])
+        state['ISA'] = list(globalParameters["CurrentISA"])
       else:
-        self._state['ISA'] = [0,0,0]
+        state['ISA'] = [0,0,0]
 
-    if "CodeObjectVersion" not in self._state:
+    if "CodeObjectVersion" not in state:
       if "CodeObjectVersion" in config:
-        self._state["CodeObjectVersion"] = config["CodeObjectVersion"]
+        state["CodeObjectVersion"] = config["CodeObjectVersion"]
       else:
-        self._state["CodeObjectVersion"] = globalParameters["CodeObjectVersion"]
+        state["CodeObjectVersion"] = globalParameters["CodeObjectVersion"]
 
     # assign parameters without defaults
     for key in config:
-      if key != "ProblemType" and key not in self._state:
-        self._state[key] = config[key]
-    self["Valid"] = True
+      if key != "ProblemType" and key not in state:
+        state[key] = config[key]
+    state["Valid"] = True
     # this could prevent OriginalSolution from re-assigning the parameters, save lots of time
-    if "AssignedProblemIndependentDerivedParameters" not in self._state:
-      self["AssignedProblemIndependentDerivedParameters"] = False
-    if "AssignedDerivedParameters" not in self._state:
-      self["AssignedDerivedParameters"] = False
+    if "AssignedProblemIndependentDerivedParameters" not in state:
+      state["AssignedProblemIndependentDerivedParameters"] = False
+    if "AssignedDerivedParameters" not in state:
+      state["AssignedDerivedParameters"] = False
 
-    if self["ProblemType"].convolution:
-        for (key,value) in self["ProblemType"].convolution.solutionParms.items():
-            self._state[key]=value
-    Solution.assignDerivedParameters(self._state)
+    if state["ProblemType"].convolution:
+        for (key,value) in state["ProblemType"].convolution.solutionParms.items():
+            state[key]=value
+    Solution.assignDerivedParameters(state)
     self._name = config["CustomKernelName"] if isCustomKernelConfig(config) else None
+    self._state = state
     self.initHelperKernelObjects()
-
+    
   # these keys are copied from ProblemType to internal that may be overridden
   InternalKeys = ["UseSgprForGRO","VectorStore"]
 
@@ -1772,11 +1772,8 @@ class Solution(collections.abc.Mapping):
   ########################################
   # get a list of kernel parameters for this solution
   def getKernels(self):
-    kernel = deepcopy(self)
-    kernel._state.update({"Kernel": True})
-    kernels = []
-    kernels.append(kernel)
-    return kernels
+    self["Kernel"] = True
+    return self
 
 
   ########################################
@@ -1791,7 +1788,7 @@ class Solution(collections.abc.Mapping):
   # create StreamKInit Kernels
   def initStreamKInitKernelObjects(self):
     self.streamKInitKernelObjects = []
-    if self["StreamK"] == 2 or self["StreamK"] == 3:
+    if self["StreamK"] > 0 and self["StreamKAtomic"] == 0:
       state = {}
       state["ProblemType"] = deepcopy(self["ProblemType"])
       state["KernelLanguage"] = "Source"
@@ -1803,7 +1800,7 @@ class Solution(collections.abc.Mapping):
   # create BetaOnly Kernels
   def initBetaOnlyKernelObjects(self):
     self.betaOnlyKernelObjects = []
-    if self["GlobalSplitU"] > 1 or self["StreamK"] == 1:
+    if self["GlobalSplitU"] > 1 or self["StreamK"] > 0 and self["StreamKAtomic"] == 1:
       state = {}
       state["ProblemType"] = deepcopy(self["ProblemType"])
       state["KernelLanguage"] = "Source"
@@ -1895,7 +1892,7 @@ class Solution(collections.abc.Mapping):
     elif globalParameters["AsmCaps"][isa]['HasWMMA']:
       outputVectorWidth, RegsPerOut = 1, 1
     else:
-      print("WARNING: unexpect code flow")
+      print("WARNING: unexpected code flow")
 
     return outputVectorWidth, RegsPerOut
 
@@ -2949,7 +2946,7 @@ class Solution(collections.abc.Mapping):
       state["_GlobalAccumulation"] = None
       state["_WorkspaceSizePerElemC"] = 0
 
-      if state["StreamK"] == 2 or state["StreamK"] == 3:
+      if state["StreamK"] > 0 and state["StreamKAtomic"] == 0:
         # StreamK Workspace size
         computeBytes = state["ProblemType"]["ComputeDataType"].numBytes()
         state["_GlobalAccumulation"] = 'PartialsBuffer'
@@ -2982,13 +2979,22 @@ class Solution(collections.abc.Mapping):
         reject(state, "Cannot enable both Stream-K and PersistentKernel")
       if not state["ProblemType"]["StridedBatched"]:
         reject(state, "General batch not supported with Stream-K")
-      if state["StreamK"] == 1:
+      if state["StreamKXCCMapping"] > 0:
+        if isa != (9,4,2):
+          reject(state, "XCC mapping currently only on gfx942")
+      if state["StreamKAtomic"] == 1:
         if not state["ProblemType"]["DataType"].isSingle():
           reject(state, "Atomic Stream-K currently only tested for SGEMM")
         if not state["BufferStore"]:
           reject(state, "Atomic Stream-K requires BufferStore")
         if state["LocalSplitU"] > 1:
           reject(state, "Atomic Stream-K not working with LocalSplitU")
+    else:
+      # If not using StreamK, set StreamKAtomic to 0 to avoid possibility of duplicate kernels
+      state["StreamKAtomic"] = 0
+      state["StreamKXCCMapping"] = 0
+      # If not using StreamK, clear debug modes to avoid duplicate kernels
+      state["DebugStreamK"] = 0
 
     if state["KernelLanguage"] == "Assembly" and not state["BufferLoad"]:
       # StaggerU only works with source kernels, or with BufferLoad.
@@ -3049,10 +3055,10 @@ class Solution(collections.abc.Mapping):
 
     ProblemType.assignDerivedParameters(state["ProblemType"])
     if not state["Valid"]:
-      print2("in assignDerivedParameters, state['Valid'] = False")
+      tPrint(3, "in assignDerivedParameters, state['Valid'] = False")
       return
 
-    atomic = ((state["GlobalSplitU"] > 1) and (state["_GlobalAccumulation"] != 'MultipleBuffer')) or state["AtomicAddC"] or state["StreamK"] == 1
+    atomic = ((state["GlobalSplitU"] > 1) and (state["_GlobalAccumulation"] != 'MultipleBuffer')) or state["AtomicAddC"] or (state["StreamK"] > 0 and state["StreamKAtomic"] == 1)
     if atomic and globalParameters["DebugSkipAtomic"]:
       reject(state, "DEBUG: DebugSkipAtomic enabled, rejecting atomic kernel")
     if not atomic and globalParameters["DebugSkipNonAtomic"]:
@@ -3069,7 +3075,7 @@ class Solution(collections.abc.Mapping):
       state["PrefetchLocalRead"] = 1
       state["ExpandPointerSwap"] = 1
       state["1LDSBuffer"] = 1
-      print2("\nSet SIA=2, force PrefetchLocalRead=1, ExpandPointerSwap=1, 1LDSBuffer=1")
+      tPrint(3, "\nSet SIA=2, force PrefetchLocalRead=1, ExpandPointerSwap=1, 1LDSBuffer=1")
 
     if "MemoryModifierFormat" not in state or state["MemoryModifierFormat"] not in validParameters["MemoryModifierFormat"]:
       if globalParameters["AsmCaps"][isa]["HasGLCModifier"]:
@@ -3192,8 +3198,8 @@ class Solution(collections.abc.Mapping):
     if state["PersistentKernelAlongBatch"] and (\
             (state["PersistentKernel"] == 0) or \
             (state["KernelLanguage"] == "Source" and state["GlobalSplitU"] != 1)):
-      print2("PersistentKernelAlongBatch requires PersistentKernel != 0, forcing PersistentKernelAlongBatch = False")
-      print2("PersistentKernelAlongBatch not support GSU on HIP, forcing PersistentKernelAlongBatch = False")
+      tPrint(3, "PersistentKernelAlongBatch requires PersistentKernel != 0, forcing PersistentKernelAlongBatch = False")
+      tPrint(3, "PersistentKernelAlongBatch not support GSU on HIP, forcing PersistentKernelAlongBatch = False")
       state["PersistentKernelAlongBatch"] = False
 
     if state["PrefetchAcrossPersistent"]:
@@ -3201,7 +3207,7 @@ class Solution(collections.abc.Mapping):
          state["PersistentKernel"] == 0 or \
          state["PrefetchGlobalRead"] == 0 or \
          state["SuppressNoLoadLoop"]:
-        print2("PAP requires Assembly, PK!=0, PGR!=0, SuppressNoLoadLoop=True, forcing PAP=False")
+        tPrint(3, "PAP requires Assembly, PK!=0, PGR!=0, SuppressNoLoadLoop=True, forcing PAP=False")
         state["PrefetchAcrossPersistent"] = False
         state["PrefetchAcrossPersistentMode"] = False # PAPM should be 0 here to avoid getting rejected later with a logic file
       if state["PrefetchAcrossPersistentMode"] == 0 and state["PrefetchGlobalRead"] == 2:
@@ -4782,7 +4788,7 @@ class Solution(collections.abc.Mapping):
   def getNameFull(state):
     requiredParameters = {}
     for key in state:
-      if key in list(validParameters.keys()):
+      if key in validParameters:
         requiredParameters[key] = True
     return Solution.getNameMin(state, requiredParameters)
 
@@ -4881,13 +4887,9 @@ class Solution(collections.abc.Mapping):
 
   ########################################
   @ staticmethod
-  def getParameterNameAbbreviation( name ):
-    specialValues = {
-      'MACInstruction': '' # Conflicts with MatrixInstruction, but _MAD and _FMA should be enough differentiation for the kernel name.
-    }
-    if name in specialValues: return specialValues[name]
+  def getParameterNameAbbreviation(name):
+    return parameterNameAbbreviations[name]
 
-    return ''.join([c for c in name if not c.islower()])
 
   ########################################
   @ staticmethod
@@ -4931,12 +4933,11 @@ class Solution(collections.abc.Mapping):
     else:
       printExit('Parameter {key}={value} is new object type ({t})'.format(key=key, value=value, t=type(value)))
       return str(value)
-
-
+  
   ##########################
   # make class look like dict
   def keys(self):
-    return list(self._state.keys())
+    return self._state.keys()
 
   def __len__(self):
     return len(self._state)
@@ -4960,14 +4961,12 @@ class Solution(collections.abc.Mapping):
     return self.__str__()
 
   def getAttributes(self):
-    return deepcopy(self._state)
+    return self._state
 
   def __hash__(self):
-    return hash(str(self) + self._state.get("codeObjectFile", ""))
-    #return hash(self.getAttributes())
+    return hash(str(self) + self.get("codeObjectFile", ""))
 
   def __eq__(self, other):
-    #return isinstance(other, Solution) and self.getAttributes() == other.getAttributes()
     return isinstance(other, Solution) and str(self) == str(other)
 
   def __ne__(self, other):
