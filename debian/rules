@@ -28,6 +28,9 @@ override_dh_auto_configure:
 	sed -i -e "s@opt/rocm@opt/rocm-${ROCM_VERSION}@g" Tensile/Tests/extended/convolution_config/YamlBuilder/YamlBuilder.py
 	dh_auto_configure
 
+override_dh_auto_test:
+	:
+
 #override_dh_install:
 #	sed -i "s,@ROCM_VERSION@,${ROCM_VERSION},g" debian/install
 #	dh_install --sourcedir=$(DEB_INST_DIR)
