@@ -19,6 +19,7 @@ Build-Depends:
  rocm-cmake,
  rocm-core,
  rocm-env,
+ rocm-hip-on-rocclr-dev,
  rocm-llvm,
  rocm-rocminfo,
 Standards-Version: 4.7.0
