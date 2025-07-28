@@ -49,8 +49,8 @@ MaintFunc/FixPath:
 override_dh_auto_configure: MaintFunc/FixPath
 	dh_auto_configure
 
-#override_dh_auto_test:
-#	:
+override_dh_auto_test:
+	:
 
 #override_dh_install:
 #	sed -i "s,@ROCM_VERSION@,${ROCM_VERSION},g" debian/install
