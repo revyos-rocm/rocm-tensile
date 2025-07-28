@@ -21,11 +21,32 @@ MAKEOPTS="-j$$(($$(nproc) / 4))"
 %:
 	dh $@ --with python3 --buildsystem=pybuild
 
-override_dh_auto_configure:
-# Fix ROCM_PATH at first
-	sed -i -e "s@opt/rocm@opt/rocm-${ROCM_VERSION}@g" Tensile/Common.py
-	sed -i -e "s@opt/rocm@opt/rocm-${ROCM_VERSION}@g" Tensile/Tests/yaml_only/test_config.py
-	sed -i -e "s@opt/rocm@opt/rocm-${ROCM_VERSION}@g" Tensile/Tests/extended/convolution_config/YamlBuilder/YamlBuilder.py
+MaintFunc/FixPath:
+	sed -i "s@opt/rocm@opt/rocm-${ROCM_VERSION}@g" \
+		HostLibraryTests/CMakeLists.txt \
+		Tensile/Common.py \
+		Tensile/TensileCreateLibrary.py \
+		Tensile/Tests/hipModuleLoad_timing/Makefile \
+		Tensile/Tests/extended/convolution_config/YamlBuilder/YamlBuilder.py \
+		Tensile/Tests/yaml_only/test_config.py \
+		Tensile/Tests/unit/test_TensileCreateLibrary.py \
+		Tensile/Source/cmake/FindROCmSMI.cmake \
+		Tensile/Source/FindHIP.cmake \
+		Tensile/Source/CMakeLists.txt
+	sed -i "s@amdclang@clang@g" Tensile/Common.py
+	sed -i "s@llvm/bin@bin@g" \
+		tasks.py \
+		Tensile/KernelWriterSource.py \
+		Tensile/Common.py \
+		Tensile/Tensile.py \
+		Tensile/TensileCreateLibrary.py \
+		Tensile/Tests/hipModuleLoad_timing/Makefile \
+		Tensile/Tests/unit/test_TensileCreateLibrary.py \
+		Tensile/TensileCreateLib/ParseArguments.py \
+		scripts/profile-tcl.sh \
+		scripts/run-tcl.sh
+
+override_dh_auto_configure: MaintFunc/FixPath
 	dh_auto_configure
 
 #override_dh_auto_test:
