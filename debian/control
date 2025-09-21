@@ -19,9 +19,9 @@ Build-Depends:
  python3-yaml,
  rocm-cmake,
  rocm-core,
- rocm-env,
+ rocm-env (>= 7.0.0),
  rocm-hip-on-rocclr-dev,
- rocm-llvm,
+ rocm-llvm (>= 7.0.0),
  rocm-rocminfo,
 Standards-Version: 4.7.0
 Homepage: https://github.com/ROCm/Tensile
