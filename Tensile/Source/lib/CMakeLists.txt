@@ -90,24 +90,20 @@ if(TENSILE_USE_LLVM OR TENSILE_USE_MSGPACK)
 endif()
 
 if(TENSILE_USE_MSGPACK)
-    find_package(msgpack REQUIRED NAMES msgpack msgpack-cxx msgpack-c)
-    target_compile_definitions(TensileHost PUBLIC -DTENSILE_MSGPACK=1)
-
-    if(TARGET msgpackc-cxx)
-        get_target_property(msgpack_inc msgpackc-cxx INTERFACE_INCLUDE_DIRECTORIES)
-    elseif(TARGET msgpackc)
-        get_target_property(msgpack_inc msgpackc INTERFACE_INCLUDE_DIRECTORIES)
-    elseif(TARGET msgpack-cxx)
-        get_target_property(msgpack_inc msgpack-cxx INTERFACE_INCLUDE_DIRECTORIES)
+    # See: https://github.com/msgpack/msgpack-c/wiki/Q%26A#how-to-support-both-msgpack-c-c-version-5x-and-6x-
+    # Prefer 6.x (msgpack-cxx) as that is what we bundle in the build.
+    find_package(msgpack-cxx CONFIG)
+    if(msgpack-cxx_FOUND)
+        message(STATUS "Found msgpack-cxx (>=6.x)")
+        set(msgpack_target msgpack-cxx)
+    else()
+        find_package(msgpackc-cxx CONFIG REQUIRED NAMES msgpackc-cxx msgpack)
+        message(STATUS "Found msgpack (<=5.x)")
+        set(msgpack_target msgpackc)
     endif()
-
-    if(DEFINED msgpack_inc)
-        # include C++ headers manually
-        # External header includes included as system files
-        target_include_directories(TensileHost 
-            SYSTEM PRIVATE $<BUILD_INTERFACE:${msgpack_inc}>
-        )
-    endif()
+    get_target_property(msgpack_inc ${msgpack_target} INTERFACE_INCLUDE_DIRECTORIES)
+    target_include_directories(TensileHost PRIVATE "${msgpack_inc}")
+    target_compile_definitions(TensileHost PRIVATE TENSILE_MSGPACK=1)
 endif()
 
 if(TENSILE_USE_LLVM)

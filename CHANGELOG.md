@@ -1,6 +1,43 @@
 # Changelog for Tensile
 
-## Tensile 4.43.0 for ROCm 6.4
+## Tensile 4.44.0 for ROCm 7.0.0
+
+### Added
+
+- Added support for gfx950
+- Added code object compression via bundling
+- Added support for non-default HIP SDK installations on Windows
+- Added master solution library documentation
+- Added compiler version dependent assembler and architecture capabilities
+- Added documentation from GitHub Wiki to ROCm docs
+
+### Changed
+
+- Loosened check for CLI compiler choices
+- Introduced 4-tuple targets for bundler invocations
+- Introduced PATHEXT extensions on Windows when searching for toolchain components
+- Enabled passing fully qualified paths to toolchain components
+- Enabled environment variable overrides when searching for a ROCm stack 
+- Improved default toolchain configuration
+- Ignored f824 flake errors
+
+### Removed
+
+- Removed support for the gfx940 and gfx941 targets
+- Removed unused tuning files
+- Removed disabled tests
+
+### Resolved issues
+
+- Fixed configure time path not being invoked at build
+- Fixed find_package for msgpack to work with versions 5 and 6
+- Fixed rhel9 testing
+- Fixed gfx908 builds
+- Fixed "argument list too long" error
+- Fixed version typo in 6.3 changelog
+- Fixed improper use of aliases as nested namespace specifiers
+
+## Tensile 4.43.0 for ROCm 6.4.0
 
 ### Added
 
@@ -45,7 +82,7 @@
 - Fixed test failures in SLES containers when running TensileTests
 - Fixed a regression that prevents TensileCreateLibrary from completing when fallback logic is not available
 
-## Tensile 4.42.0 for ROCm 6.4.0
+## Tensile 4.42.0 for ROCm 6.3.0
 
 ### Added
 

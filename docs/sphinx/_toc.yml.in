@@ -2,36 +2,42 @@ defaults:
   numbered: False
 root: src/index
 subtrees:
+- entries:
+  - file: src/what-is-tensile
+
 - caption: Install
   entries:
   - file: src/install/installation
     title: Installation
 
-- caption: Concepts
+- caption: Conceptual
   entries:
-  - file: src/conceptual/supported-problems
+  - file: src/conceptual/solution-selection-catalogs
+  - file: src/conceptual/benchmarking
+  - file: src/conceptual/kernel-parameters
 
 - caption: Reference
   entries:
   - file: src/cli-reference/cli-reference
     title: CLI reference
-    entries:
-    - file: src/cli-reference/tensile-create-library-cli
-  - file: src/api-reference/api-reference
-    title: API reference
-    entries:
-    - file: src/api-reference/common
-    - file: src/api-reference/embedded-data
-    - file: src/api-reference/tensile-create-library-api
-    - file: src/api-reference/utilities
   - file: src/reference/environment-variables
+    title: Environment variables
+  - file: src/reference/precision-support
+    title: Precision support
+  - file: src/reference/nomenclature
 
 - caption: Contribution
   entries:
   - file: src/how-to/programmers-guide
-    title: Programmer's guide
   - file: src/how-to/contribution-guidelines
-    title: Contribution guidelines
+
+- caption: Tutorial
+  entries:
+  - file: src/tutorial/benchmark-config-example
+
+- caption: Support
+  entries:
+  - file: src/support/troubleshooting
 
 - caption: About
   entries:
