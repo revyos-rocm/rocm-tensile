@@ -33,17 +33,6 @@ MaintFunc/FixPath:
 		Tensile/Source/cmake/FindROCmSMI.cmake \
 		Tensile/Source/FindHIP.cmake \
 		Tensile/Source/CMakeLists.txt
-	sed -i "s@amdclang@clang@g" \
-		tasks.py \
-		Tensile/KernelWriterSource.py \
-		Tensile/Common.py \
-		Tensile/Tensile.py \
-		Tensile/TensileCreateLibrary.py \
-		Tensile/Tests/hipModuleLoad_timing/Makefile \
-		Tensile/Tests/unit/test_TensileCreateLibrary.py \
-		Tensile/TensileCreateLib/ParseArguments.py \
-		scripts/profile-tcl.sh \
-		scripts/run-tcl.sh
 	sed -i "s@llvm/bin@bin@g" Tensile/Common.py
 
 override_dh_auto_configure: MaintFunc/FixPath
