@@ -1,32 +1,32 @@
 .. meta::
   :description: Tensile is a tool for creating a benchmark-driven backend library for GEMM
-  :keywords: Tensile installation, GEMM, Tensor, Build Tensile, Run benchmarks
+  :keywords: Tensile installation, GEMM, Tensor, tensor, Build Tensile, Run benchmarks
 
 .. _installation:
 
-********************************************************************
-Tensile installation
-********************************************************************
+*****************
+Installation
+*****************
 
-You can obtain Tensile as part of ROCm installation or choose to install Tensile from source. This document discusses both the methods to obtain Tensile.
+This topic provides information required to install Tensile from source and run benchmarks.
+
+.. _install-rocm:
 
 Install ROCm
 ============
 
-Install ROCm for your platform. For installation instructions, refer to `Linux <https://rocm.docs.amd.com/projects/install-on-linux/en/latest/tutorial/quick-start.html>`_ or Windows `Windows <https://rocm.docs.amd.com/projects/install-on-windows/en/latest/index.html>`_ installation guide.
+To begin, install ROCm for your platform. For installation instructions, refer to the `Linux <https://rocm.docs.amd.com/projects/install-on-linux/en/latest/tutorial/quick-start.html>`_ or `Windows <https://rocm.docs.amd.com/projects/install-on-windows/en/latest/index.html>`_ installation guide.
 
 .. tip::
 
-   If using Bash, we recommend you to set ``PATH=/opt/rocm/bin/:$PATH`` in your ``~/.bashrc`` and refresh your shell using ``source ~/.bashrc``.
-   Alternatively, export the path for your current shell session only, using ``export PATH=/opt/rocm/bin/:$PATH``.
+   If using Bash, set ``PATH=/opt/rocm/bin/:$PATH`` in your ``~/.bashrc`` and refresh your shell using ``source ~/.bashrc``.
+   Alternatively, export the path for your current shell session using ``export PATH=/opt/rocm/bin/:$PATH``.
 
 Install OS dependencies
 =========================
 
-Here are the steps to install dependencies for Ubuntu distributions. For other distributions, use the appropriate package manager.
-
 .. note::
-   These steps might require elevated privileges.
+   The steps below are for Ubuntu. For other distributions, use the appropriate package manager.
 
 1. Install dependencies:
 
@@ -86,7 +86,7 @@ Running benchmark
 
 To run a benchmark, pass a tuning config to the ``Tensile`` program located in ``Tensile/bin``.
 
-For demonstration purposes, we use the sample tuning file available in ``Tensile/Configs/rocblas_sgemm_example.yaml``.
+For demonstration purposes, the sample tuning file available in ``Tensile/Configs/rocblas_sgemm_example.yaml`` is used.
 The sample tuning file allows you to specify the target architecture for which the benchmark will generate a library.
 To find your device architecture, run:
 
@@ -110,3 +110,14 @@ After the benchmark completes, Tensile creates the following directories:
 - **2_BenchmarkData**: Contains the raw performance results of all kernels in CSV and YAML formats.
 - **3_LibraryLogic**: Contains the winning (optimal) kernel configurations in YAML format. Typically, rocBLAS takes the YAML files from this folder.
 - **4_LibraryClient**: Contains the code objects, kernels, and library code. This is the output of running ``TensileCreateLibrary`` using the ``3_LibraryLogic`` directory as an input.
+
+The client is built at the beginning of the build and cached for future builds if the output directory and client build files are unchanged. To use the client, run:
+
+.. code-block:: shell
+
+   ./0_Build/client/tensile_client -h
+   ./0_Build/client/tensile_client --config-file=1_BenchmarkProblems/Cijk_Ailk_Bljk_SB_00/00_Final/source/ClientParameters.ini
+
+.. note::
+
+  The benchmarking module Tensile.py is written in Python3. The programs generate kernels and build all object files and C/C++ files used for benchmarking. Note that Tensile is **NOT** compatible with Python2.

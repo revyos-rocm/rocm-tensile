@@ -2110,7 +2110,7 @@ class KernelWriterAssembly(KernelWriter):
     if kernel["EnableMatrixInstruction"]:
       self.miLatency = kernel["MatrixInstM"] // 2
       miIssueLatency = 2
-      if (self.version == (9,4,0) or self.version == (9,4,1) or self.version == (9,4,2)) and kernel["MatrixInstB"] == 1 and \
+      if (self.version == (9,4,2)) and kernel["MatrixInstB"] == 1 and \
          (kernel["EnableF32XdlMathOp"] or \
           kernel["ProblemType"]["DataType"].is8bitFloat() or \
           kernel["ProblemType"]["DataType"].isHalf() or kernel["ProblemType"]["DataType"].isBFloat16() or \
@@ -2467,6 +2467,8 @@ class KernelWriterAssembly(KernelWriter):
     # Extra macro for DirectToLds loads with no destination register
     type_list = {
       'b32'       : 'dword',
+      'b64'       : 'dwordx2',
+      'b128'      : 'dwordx4',
       'u16'       : 'ushort'
     }
     for t in type_list:
@@ -6086,7 +6088,7 @@ class KernelWriterAssembly(KernelWriter):
   # we must use a longer 32 bit version.
   # Use when erroring out "invalid operand due to label > SIMM16"
   ##############################################################################
-  def longBranch(self, label, tmpSgpr):
+  def longBranch(self, label, tmpSgpr=None):
     kStr = ""
     if tmpSgpr is None:
       tmpSgpr = self.getTmpSgpr(3).idx()
